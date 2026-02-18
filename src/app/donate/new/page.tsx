@@ -72,7 +72,10 @@ export default function NewDonationPage() {
         e.preventDefault();
 
         // 🔥 Combine Date + Time into one ISO format
-        const combinedExpiry = `${formData.expiryDate}T${formData.expiryTime}`;
+        const combinedExpiry = new Date(
+            `${formData.expiryDate}T${formData.expiryTime}`
+        ).toISOString();
+
 
         const data = new FormData();
         data.append("name", formData.name);

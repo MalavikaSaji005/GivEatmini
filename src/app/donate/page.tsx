@@ -7,7 +7,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FilterSelect } from "@/components/FilterSelect";
@@ -39,6 +40,7 @@ import { Star } from "lucide-react";
 
 export default function DonatePage() {
   const [donations, setDonations] = useState<FoodItem[]>([]);
+  const [isManualSelection, setIsManualSelection] = useState(false);
 
   const [location, setLocation] = useState<string>("Loading location...");
   const [selectedItem, setSelectedItem] = useState<FoodItem | null>(null);
@@ -84,6 +86,47 @@ export default function DonatePage() {
   const validDonations = donations.filter(
     item => new Date(item.expiryDate) > new Date()
   );
+  const sortedDonations = useMemo(() => {
+    return [...validDonations].sort(
+      (a, b) =>
+        new Date(a.expiryDate).getTime() -
+        new Date(b.expiryDate).getTime()
+    );
+  }, [validDonations]);
+
+  useEffect(() => {
+    if (sortedDonations.length === 0) {
+      setSelectedItem(null);
+      return;
+    }
+
+    const soonest = sortedDonations[0];
+
+    // If nothing selected → default soonest
+    if (!selectedItem) {
+      setSelectedItem(soonest);
+      return;
+    }
+
+    const selectedExpired =
+      new Date(selectedItem.expiryDate) <= new Date();
+
+    if (selectedExpired) {
+      setIsManualSelection(false);
+      setSelectedItem(soonest);
+      return;
+    }
+
+    // Only auto-takeover if NOT manually selected
+    if (!isManualSelection) {
+      setSelectedItem(soonest);
+    }
+
+  }, [sortedDonations, selectedItem, isManualSelection]);
+
+
+
+
 
 
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -97,32 +140,18 @@ export default function DonatePage() {
 
     return () => clearInterval(interval);
   }, []);
-  useEffect(() => {
-    if (donations.length > 0) {
-      setSelectedItem(donations[0]);
-    } else {
-      setSelectedItem(null);
-    }
-  }, [donations]);
-
 
   useEffect(() => {
     const fetchDonations = async () => {
       const res = await fetch("/api/donations");
       const data = await res.json();
       setDonations(data);
-      setSelectedItem(data[0] || null);
+
     };
 
     fetchDonations();
   }, []);
-  useEffect(() => {
-    if (donations.length > 0) {
-      setSelectedItem(donations[0]);
-    } else {
-      setSelectedItem(null);
-    }
-  }, [donations]);
+
   useEffect(() => {
     if (!selectedItem) return;
 
@@ -366,7 +395,11 @@ export default function DonatePage() {
                 <div
                   key={item.id}
                   className="cursor-pointer"
-                  onClick={() => setSelectedItem(item)}
+                  onClick={() => {
+                    setSelectedItem(item);
+                    setIsManualSelection(true);
+                  }}
+
                 >
                   <FoodCard item={item} />
                 </div>
