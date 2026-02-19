@@ -13,4 +13,5 @@ export type FoodItem = {
   expiryDate: string;
   imageUrl: string;
   type: string;   // 👈 ADD THIS
+  price?: number;
 };
